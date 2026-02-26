@@ -5,7 +5,7 @@ import httpx
 from ._internals import _handle_response
 from ._utils import Result
 from .exceptions import APIException
-from .models import AtheonUnitFetchAndIntegrateModel
+from .models import AtheonUnitCreateModel
 
 
 class AtheonCodexClient:
@@ -77,12 +77,10 @@ class AtheonCodexClient:
 
                 return _handle_response(response)
 
-    def fetch_and_integrate_atheon_unit(
-        self, payload: AtheonUnitFetchAndIntegrateModel
-    ):
+    def create_atheon_unit(self, payload: AtheonUnitCreateModel):
         response = self._make_request(
             "POST",
-            endpoint="/track-units/fetch-and-integrate",
+            endpoint="/track-units/create",
             json_payload=payload.model_dump(mode="json"),
             is_streaming_request=False,
         )

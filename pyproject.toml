@@ -1,24 +1,18 @@
 [project]
 name = "atheon-codex"
-version = "0.5.0"
+version = "0.6.0"
 description = "Python SDK for Atheon"
-authors = [{ name = "Saurabh Ghanekar", email = "ghanekarsaurabh8@gmail.com" }]
+authors = [{ name = "Saurabh Ghanekar", email = "saurabh@atheon.ad" }]
 license = "Apache-2.0"
 license-files = ["LICENSE.md"]
 readme = "README.md"
 urls = { homepage = "https://atheon.ad/", repository = "https://github.com/atheon-inc/atheon-codex", documentation = "https://github.com/atheon-inc/atheon-codex" }
-requires-python = ">=3.10"
-dependencies = ["httpx>=0.28", "pydantic>=2.10"]
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.28", "pydantic>=2.12"]
 
 [dependency-groups]
-dev = [
-    "click>=8.1",
-    "pre-commit>=4.0",
-    "rich>=13.9",
-    "ruff>=0.9",
-    "tomli>=2.2; python_version < '3.11'", # Note: Remove this when the 'requires-python' becomes ">=3.11" 
-]
-test = ["pytest>=8.3", "pytest-cov>=6.0"]
+dev = ["click>=8.3", "pre-commit>=4.5", "rich>=14.3"]
+test = ["pytest>=9.0", "pytest-cov>=7.0"]
 
 [tool.uv]
 default-groups = ["dev", "test"]
