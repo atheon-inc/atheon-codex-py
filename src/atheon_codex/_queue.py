@@ -1,9 +1,12 @@
+import logging
 import queue
 import threading
 from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class _FlushSentinel(BaseModel):
@@ -39,33 +42,28 @@ class _EventQueue:
 
     def enqueue(self, payload: dict[str, Any]) -> None:
         if self._is_shutting_down:
-            # TODO: Change this to logging
-            print("[Atheon] event dropped because queue is shutting down.")
+            logger.warning("Event dropped because queue is shutting down.")
             return
 
         try:
             self._queue.put_nowait(payload)
         except queue.Full:
-            # TODO: Change this to logging
-            print(
-                "[Atheon] Event queue is full, dropping event. Consider calling flush() more frequently."
+            logger.warning(
+                "Event queue is full, dropping event. Consider calling flush() more frequently."
             )
 
     def flush(self, timeout: float | None = 5.0) -> bool:
         done = threading.Event()
 
         try:
-            # Add a timeout so we don't block forever if the queue is perfectly full
             self._queue.put(_FlushSentinel(done_event=done), timeout=timeout)
         except queue.Full:
-            # TODO: Change this to logging
-            print("[Atheon] Cannot flush, queue is completely full and unresponsive.")
+            logger.warning("Cannot flush: queue is completely full and unresponsive.")
             return False
 
         success = done.wait(timeout=timeout)
         if not success:
-            # TODO: Change this to logging
-            print("[Atheon] Flush operation timed out.")
+            logger.warning("Flush operation timed out.")
 
         return success
 
@@ -111,6 +109,5 @@ class _EventQueue:
 
         try:
             self._send_fn(batch)
-        except Exception as exc:
-            # TODO: Change this to logging
-            print("[Atheon] failed to send event batch: %s", exc)
+        except Exception:
+            logger.exception("Failed to send event batch.")

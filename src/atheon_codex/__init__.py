@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import Any
 
@@ -7,7 +8,9 @@ from .decorators import agent, tool
 from .interactions import Interaction
 from .models import AgentRecord, AtheonTrackPayload, ToolRecord
 
-__version__ = "1.0.0"
+logger = logging.getLogger(__name__)
+
+__version__ = "1.0.1"
 __all__ = [
     "__version__",
     # Decorators
@@ -69,13 +72,12 @@ def init(
     global _client, _async_client
 
     if _client is not None:
-        # TODO: Change this to logging
-        print("[Atheon] init() called multiple times. Returning existing sync client.")
+        logger.debug("init() called multiple times. Returning existing sync client.")
         return _client
 
     if _async_client is not None:
         raise RuntimeError(
-            "[Atheon] Cannot initialise the sync client because the async client is already active. Use either atheon.init() or atheon.async_init(), but not both."
+            "[atheon-codex] Cannot initialise the sync client because the async client is already active. Use either atheon.init() or atheon.async_init(), but not both."
         )
 
     _client = AtheonCodexClient(
@@ -213,10 +215,10 @@ def set_result(
     active = current_interaction_var.get()
 
     if active is None or not active.is_child_interaction:
-        # TODO: Change this to logging
-        print(
-            "[Atheon] set_result() called outside of a child interaction. Ignoring. "
-            "Use this only inside functions decorated with @atheon.agent. For root interactions, pass metrics directly to interaction.finish()."
+        logger.warning(
+            "set_result() called outside of a child interaction. Ignoring. "
+            "Use this only inside functions decorated with @atheon.agent. "
+            "For root interactions, pass metrics directly to interaction.finish()."
         )
         return
 
@@ -257,15 +259,14 @@ def async_init(
     global _async_client, _client
 
     if _async_client is not None:
-        # TODO: Change this to logging
-        print(
-            "[Atheon] async_init() called multiple times. Returning existing async client."
+        logger.debug(
+            "async_init() called multiple times. Returning existing async client."
         )
         return _async_client
 
     if _client is not None:
         raise RuntimeError(
-            "[Atheon] Cannot initialise the async client because the sync client is already active. Use either atheon.init() or atheon.async_init(), but not both."
+            "[atheon-codex] Cannot initialise the async client because the sync client is already active. Use either atheon.init() or atheon.async_init(), but not both."
         )
 
     _async_client = AsyncAtheonCodexClient(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from contextvars import ContextVar, Token
@@ -8,6 +9,8 @@ from typing import Any, Self
 
 from ._queue import _EventQueue
 from .models import AgentRecord, AtheonTrackPayload, ToolRecord
+
+logger = logging.getLogger(__name__)
 
 current_interaction_var: ContextVar[Interaction | ChildInteraction | None] = ContextVar(
     "current_interaction", default=None
@@ -105,10 +108,8 @@ class Interaction(_BaseInteraction):
             uuid.UUID: The interaction ID assigned to this event.
         """
         if self._finished:
-            # TODO: Change this to logging
-            print(
-                "[Atheon] finish() called more than once on interaction %s",
-                self.interaction_id,
+            logger.warning(
+                "finish() called more than once on interaction %s.", self.interaction_id
             )
             return self.interaction_id
 

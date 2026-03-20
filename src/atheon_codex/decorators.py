@@ -1,5 +1,6 @@
 import functools
 import inspect
+import logging
 import time
 from collections.abc import Callable
 from decimal import Decimal
@@ -7,6 +8,8 @@ from typing import Any
 
 from .interactions import ChildInteraction, current_interaction_var
 from .models import ToolRecord
+
+logger = logging.getLogger(__name__)
 
 
 def tool(name: str) -> Callable:
@@ -157,8 +160,9 @@ def _run_agent_sync(
 ) -> Any:
     parent = current_interaction_var.get()
     if parent is None:
-        print(
-            "[Atheon] @atheon.agent('%s') called with no active root interaction — call atheon.begin() first. Child-agent will not be tracked.",
+        logger.warning(
+            "@atheon.agent('%s') called with no active root interaction. "
+            "Call atheon.begin() first. Child-agent will not be tracked.",
             name,
         )
         return func(*args, **kwargs)
@@ -194,8 +198,9 @@ async def _run_agent_async(
 ) -> Any:
     parent = current_interaction_var.get()
     if parent is None:
-        print(
-            "[Atheon] @atheon.agent('%s') called with no active root interaction — call atheon.begin() first. Child-agent will not be tracked.",
+        logger.warning(
+            "@atheon.agent('%s') called with no active root interaction. "
+            "Call atheon.begin() first. Child-agent will not be tracked.",
             name,
         )
         return await func(*args, **kwargs)
