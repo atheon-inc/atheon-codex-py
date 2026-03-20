@@ -1,6 +1,6 @@
 [project]
 name = "atheon-codex"
-version = "0.6.0"
+version = "1.0.0"
 description = "Python SDK for Atheon"
 authors = [{ name = "Saurabh Ghanekar", email = "saurabh@atheon.ad" }]
 license = "Apache-2.0"
@@ -19,10 +19,10 @@ default-groups = ["dev", "test"]
 
 
 [[tool.uv.index]]
-explicit = true
 name = "testpypi"
-publish-url = "https://test.pypi.org/legacy"
-url = "https://test.pypi.org/simple"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
 
 
 [tool.ruff]
