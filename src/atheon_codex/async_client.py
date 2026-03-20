@@ -11,6 +11,11 @@ from ._utils import Err
 from .interactions import Interaction
 from .models import AtheonTrackPayload
 
+# NOTE: We intentionally use a sync httpx.Client here. The export queue
+# runs on a background daemon thread (_EventQueue) which cannot await
+# async calls. Using asyncio.to_thread for flush/shutdown is acceptable
+# since those are rare lifecycle operations, not per-request hot paths.
+
 
 class AsyncAtheonCodexClient:
     def __init__(
@@ -71,7 +76,7 @@ class AsyncAtheonCodexClient:
         finish_reason: str | None = None,
         latency_ms: float | None = None,
         tools_used: list[dict[str, Any]] | None = None,
-        conversation_id: str | None = None,
+        conversation_id: uuid.UUID | None = None,
         properties: dict[str, Any] | None = None,
     ) -> uuid.UUID:
         payload = AtheonTrackPayload(
@@ -82,7 +87,9 @@ class AsyncAtheonCodexClient:
             tokens_input=tokens_input,
             tokens_output=tokens_output,
             finish_reason=finish_reason,
-            latency_ms=Decimal(f"{latency_ms:.2f}"),
+            latency_ms=Decimal(f"{latency_ms:.2f}")
+            if latency_ms is not None
+            else latency_ms,
             tools_used=tools_used or [],
             conversation_id=conversation_id,
             properties=properties or {},
@@ -97,7 +104,7 @@ class AsyncAtheonCodexClient:
         provider: str,
         model_name: str,
         input: str | None = None,
-        conversation_id: str | None = None,
+        conversation_id: uuid.UUID | None = None,
         properties: dict[str, Any] | None = None,
     ) -> Interaction:
         return Interaction(

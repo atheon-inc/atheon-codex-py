@@ -107,7 +107,7 @@ def track(
     finish_reason: str | None = None,
     latency_ms: float | None = None,
     tools_used: list[dict[str, Any]] | None = None,
-    conversation_id: str | None = None,
+    conversation_id: uuid.UUID | None = None,
     properties: dict[str, Any] | None = None,
 ) -> uuid.UUID:
     """Track a complete single-turn interaction (fire-and-forget).
@@ -125,7 +125,7 @@ def track(
         finish_reason (str | None, optional): LLM stop reason (e.g., "stop", "length").
         latency_ms (float | None, optional): End-to-end latency in milliseconds.
         tools_used (list[dict[str, Any]] | None, optional): Tool records. Usually auto-populated.
-        conversation_id (str | None, optional): Conversation ID for multi-turn grouping.
+        conversation_id (uuid.UUID | None, optional): Conversation ID for multi-turn grouping.
         properties (dict[str, Any] | None, optional): Arbitrary metadata (e.g., {"agent": "support-bot"}).
 
     Returns:
@@ -150,7 +150,7 @@ def begin(
     provider: str,
     model_name: str,
     input: str | None = None,
-    conversation_id: str | None = None,
+    conversation_id: uuid.UUID | None = None,
     properties: dict[str, Any] | None = None,
 ) -> Interaction:
     """Begin a streaming or multi-turn interaction.
@@ -162,7 +162,7 @@ def begin(
         provider (str): LLM provider (e.g., "openai").
         model_name (str): Specific model (e.g., "gpt-4o").
         input (str | None, optional): The user's query.
-        conversation_id (str | None, optional): Conversation ID for multi-turn grouping.
+        conversation_id (uuid.UUID | None, optional): Conversation ID for multi-turn grouping.
         properties (dict[str, Any] | None, optional): Initial metadata.
 
     Returns:
@@ -261,7 +261,7 @@ def async_init(
         print(
             "[Atheon] async_init() called multiple times. Returning existing async client."
         )
-        return _client
+        return _async_client
 
     if _client is not None:
         raise RuntimeError(
@@ -297,7 +297,7 @@ def async_track(
     finish_reason: str | None = None,
     latency_ms: float | None = None,
     tools_used: list[dict[str, Any]] | None = None,
-    conversation_id: str | None = None,
+    conversation_id: uuid.UUID | None = None,
     properties: dict[str, Any] | None = None,
 ) -> uuid.UUID:
     """Track a complete single-turn interaction (fire-and-forget).
@@ -315,7 +315,7 @@ def async_track(
         finish_reason (str | None, optional): LLM stop reason (e.g., "stop", "length").
         latency_ms (float | None, optional): End-to-end latency in milliseconds.
         tools_used (list[dict[str, Any]] | None, optional): Tool records. Usually auto-populated.
-        conversation_id (str | None, optional): Conversation ID for multi-turn grouping.
+        conversation_id (uuid.UUID | None, optional): Conversation ID for multi-turn grouping.
         properties (dict[str, Any] | None, optional): Arbitrary metadata (e.g., {"agent": "support-bot"}).
 
     Returns:
@@ -340,7 +340,7 @@ def async_begin(
     provider: str,
     model_name: str,
     input: str | None = None,
-    conversation_id: str | None = None,
+    conversation_id: uuid.UUID | None = None,
     properties: dict[str, Any] | None = None,
 ) -> Interaction:
     """Begin a streaming or multi-turn interaction.
@@ -352,7 +352,7 @@ def async_begin(
         provider (str): LLM provider (e.g., "openai").
         model_name (str): Specific model (e.g., "gpt-4o").
         input (str | None, optional): The user's query.
-        conversation_id (str | None, optional): Conversation ID for multi-turn grouping.
+        conversation_id (uuid.UUID | None, optional): Conversation ID for multi-turn grouping.
         properties (dict[str, Any] | None, optional): Initial metadata.
 
     Returns:

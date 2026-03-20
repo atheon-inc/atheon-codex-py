@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ToolRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4)]
     type: Annotated[Literal["tool"], Field(default="tool")]
     name: str
@@ -16,6 +18,8 @@ class ToolRecord(BaseModel):
 
 
 class AgentRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4)]
     type: Annotated[Literal["agent"], Field(default="agent")]
 

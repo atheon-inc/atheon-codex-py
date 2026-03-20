@@ -70,7 +70,7 @@ class AtheonCodexClient:
         finish_reason: str | None = None,
         latency_ms: float | None = None,
         tools_used: list[dict[str, Any]] | None = None,
-        conversation_id: str | None = None,
+        conversation_id: uuid.UUID | None = None,
         properties: dict[str, Any] | None = None,
     ) -> uuid.UUID:
         payload = AtheonTrackPayload(
@@ -81,7 +81,9 @@ class AtheonCodexClient:
             tokens_input=tokens_input,
             tokens_output=tokens_output,
             finish_reason=finish_reason,
-            latency_ms=Decimal(f"{latency_ms:.2f}"),
+            latency_ms=Decimal(f"{latency_ms:.2f}")
+            if latency_ms is not None
+            else latency_ms,
             tools_used=tools_used or [],
             conversation_id=conversation_id,
             properties=properties or {},
@@ -96,7 +98,7 @@ class AtheonCodexClient:
         provider: str,
         model_name: str,
         input: str | None = None,
-        conversation_id: str | None = None,
+        conversation_id: uuid.UUID | None = None,
         properties: dict[str, Any] | None = None,
     ) -> Interaction:
         return Interaction(

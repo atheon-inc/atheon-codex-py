@@ -18,7 +18,7 @@ class _BaseInteraction:
     def __init__(
         self, provider: str, model_name: str, properties: dict[str, Any] | None = None
     ) -> None:
-        self.interaction_id = str(uuid.uuid4())
+        self.interaction_id = uuid.uuid4()
         self.provider = provider
         self.model_name = model_name
 
@@ -68,7 +68,7 @@ class Interaction(_BaseInteraction):
         provider: str,
         model_name: str,
         input: str | None,
-        conversation_id: str | None,
+        conversation_id: uuid.UUID | None,
         properties: dict[str, Any] | None,
         queue: _EventQueue,
     ) -> None:
@@ -78,7 +78,7 @@ class Interaction(_BaseInteraction):
 
         self._queue = queue
 
-        self._context_token: Token = current_interaction_var.set(self)
+        self._context_token = current_interaction_var.set(self)
 
     @property
     def is_child_interaction(self) -> bool:
@@ -110,7 +110,7 @@ class Interaction(_BaseInteraction):
                 "[Atheon] finish() called more than once on interaction %s",
                 self.interaction_id,
             )
-            return
+            return self.interaction_id
 
         self._finished = True
         latency_ms = (time.perf_counter() - self._start_time) * 1000
@@ -134,7 +134,7 @@ class Interaction(_BaseInteraction):
 
         self._queue.enqueue(payload.model_dump(mode="json", exclude_none=True))
 
-        return payload.interaction_id
+        return self.interaction_id
 
 
 class ChildInteraction(_BaseInteraction):
@@ -161,7 +161,7 @@ class ChildInteraction(_BaseInteraction):
         self._tokens_output: int | None = None
         self._finish_reason: str | None = None
 
-        self._context_token: Token = current_interaction_var.set(self)
+        self._context_token = current_interaction_var.set(self)
 
     @property
     def is_child_interaction(self) -> bool:
