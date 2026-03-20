@@ -1,11 +1,15 @@
-from typing import Literal
+import asyncio
+import uuid
+from decimal import Decimal
+from typing import Any
 
 import httpx
 
-from ._internals import _handle_async_response
-from ._utils import Result
-from .exceptions import APIException
-from .models import AtheonUnitCreateModel
+from ._internals import _handle_response
+from ._queue import _EventQueue
+from ._utils import Err
+from .interactions import Interaction
+from .models import AtheonTrackPayload
 
 
 class AsyncAtheonCodexClient:
@@ -14,78 +18,102 @@ class AsyncAtheonCodexClient:
         api_key: str,
         base_url: str = "https://api.atheon.ad/v1",
         headers: dict[str, str] | None = None,
+        upload_size: int = 10,
+        upload_interval: float = 1.0,
+        max_queue_size: int = 10_000,
+        request_timeout: float = 45.0,
         **kwargs,
     ):
         if headers is None:
             headers = {}
 
         self.base_url = base_url
-        self.headers = {
-            "x-atheon-api-key": api_key,
-            "Content-Type": "application/json",
-            **headers,
-        }
-        self.kwargs = kwargs  # TODO: Come up with better name for this
 
-    async def _make_request(
-        self,
-        method: Literal["GET", "POST", "PUT", "DELETE"],
-        endpoint: str,
-        json_payload: dict | None = None,
-        is_streaming_request: bool = False,
-    ):
-        async with httpx.AsyncClient(
+        self._sync_http_client = httpx.Client(
             base_url=self.base_url,
-            headers=self.headers,
-            timeout=httpx.Timeout(timeout=45),
-            **self.kwargs,
-        ) as client:
-            if is_streaming_request:
-                match method:
-                    case "GET":
-                        async with client.stream(
-                            method,
-                            endpoint,
-                            headers={"Accept": "text/event-stream"},
-                            timeout=httpx.Timeout(timeout=45),
-                        ) as stream_response:
-                            return await _handle_async_response(
-                                stream_response, is_streaming_response=True
-                            )
-                    case _:
-                        return Result(
-                            value=None,
-                            error=APIException(
-                                "Streaming requests only support GET method"
-                            ),
-                        )
-            else:
-                match method:
-                    case "GET":
-                        response = await client.get(endpoint)
-                    case "POST":
-                        response = await client.post(endpoint, json=json_payload)
-                    case "PUT":
-                        response = await client.put(endpoint, json=json_payload)
-                    case "DELETE":
-                        if json_payload is not None:
-                            response = await client.request(
-                                method, endpoint, json=json_payload
-                            )
-                        else:
-                            response = await client.delete(endpoint)
-
-                return await _handle_async_response(response)
-
-    async def create_atheon_unit(self, payload: AtheonUnitCreateModel):
-        response = await self._make_request(
-            "POST",
-            endpoint="/track-units/create",
-            json_payload=payload.model_dump(mode="json"),
-            is_streaming_request=False,
+            headers={
+                "x-atheon-api-key": api_key,
+                "Content-Type": "application/json",
+                **headers,
+            },
+            timeout=httpx.Timeout(timeout=request_timeout),
+            **kwargs,
         )
 
-        if response.error is not None:
-            raise response.error
+        self._queue = _EventQueue(
+            send_fn=self._send_batch_sync,
+            upload_size=upload_size,
+            upload_interval=upload_interval,
+            max_queue_size=max_queue_size,
+        )
 
-        return response.value
+    async def __aenter__(self) -> "AsyncAtheonCodexClient":
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        await self.shutdown()
+
+    async def flush(self) -> None:
+        await asyncio.to_thread(self._queue.flush)
+
+    async def shutdown(self) -> None:
+        await asyncio.to_thread(self._queue.shutdown)
+        self._sync_http_client.close()
+
+    def track(
+        self,
+        provider: str,
+        model_name: str,
+        input: str | None = None,
+        output: str | None = None,
+        tokens_input: int | None = None,
+        tokens_output: int | None = None,
+        finish_reason: str | None = None,
+        latency_ms: float | None = None,
+        tools_used: list[dict[str, Any]] | None = None,
+        conversation_id: str | None = None,
+        properties: dict[str, Any] | None = None,
+    ) -> uuid.UUID:
+        payload = AtheonTrackPayload(
+            provider=provider,
+            model_name=model_name,
+            input=input,
+            output=output,
+            tokens_input=tokens_input,
+            tokens_output=tokens_output,
+            finish_reason=finish_reason,
+            latency_ms=Decimal(f"{latency_ms:.2f}"),
+            tools_used=tools_used or [],
+            conversation_id=conversation_id,
+            properties=properties or {},
+        )
+
+        self._queue.enqueue(payload.model_dump(mode="json", exclude_none=True))
+
+        return payload.interaction_id
+
+    def begin(
+        self,
+        provider: str,
+        model_name: str,
+        input: str | None = None,
+        conversation_id: str | None = None,
+        properties: dict[str, Any] | None = None,
+    ) -> Interaction:
+        return Interaction(
+            provider=provider,
+            model_name=model_name,
+            input=input,
+            conversation_id=conversation_id,
+            properties=properties,
+            queue=self._queue,
+        )
+
+    def _send_batch_sync(self, batch: list[dict]) -> None:
+        response = self._sync_http_client.post(
+            "/track-ai-events/", json={"events": batch}
+        )
+        result = _handle_response(response)
+
+        if isinstance(result, Err):
+            raise result.error
