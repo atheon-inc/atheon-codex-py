@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 
 from httpx import Response
@@ -63,50 +62,10 @@ def _handle_common_3xx_4xx_5xx_status_code(
             )
 
 
-def _handle_response(
-    response: Response, is_streaming_response: bool = False
-) -> Ok[dict] | Err[APIException]:
+def _handle_response(response: Response) -> Ok[dict] | Err[APIException]:
     match response.status_code:
         case HTTPStatus.OK | HTTPStatus.CREATED | HTTPStatus.ACCEPTED:
-            if is_streaming_response:
-                for line in response.iter_lines():
-                    if line.startswith("data: "):
-                        return Ok(value=json.loads(line[len("data: ") :].strip()))
-                    elif line.startswith("error: "):
-                        return Err(
-                            error=APIException(
-                                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                                detail=line[len("error: ") :].strip(),
-                            )
-                        )
-                return Err(error=APIException(detail="Stream ended unexpectedly"))
-            else:
-                return Ok(value=response.json())
-        case _:
-            return _handle_common_3xx_4xx_5xx_status_code(
-                response.status_code, response.text
-            )
-
-
-async def _handle_async_response(
-    response: Response, is_streaming_response: bool = False
-) -> Ok[dict] | Err[APIException]:
-    match response.status_code:
-        case HTTPStatus.OK | HTTPStatus.CREATED | HTTPStatus.ACCEPTED:
-            if is_streaming_response:
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        return Ok(value=json.loads(line[len("data: ") :].strip()))
-                    elif line.startswith("error: "):
-                        return Err(
-                            error=APIException(
-                                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                                detail=line[len("error: ") :].strip(),
-                            )
-                        )
-                return Err(error=APIException(detail="Stream ended unexpectedly"))
-            else:
-                return Ok(value=response.json())
+            return Ok(value=response.json())
         case _:
             return _handle_common_3xx_4xx_5xx_status_code(
                 response.status_code, response.text

@@ -3,11 +3,13 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from contextvars import ContextVar, Token
 from decimal import Decimal
 from typing import Any, Self
 
 from ._queue import _EventQueue
+from ._utils import _generate_hash
 from .models import AgentRecord, AtheonTrackPayload, ToolRecord
 
 logger = logging.getLogger(__name__)
@@ -34,7 +36,7 @@ class _BaseInteraction:
         self._context_token: Token | None = None
 
     @property
-    def id(self) -> str:
+    def id(self) -> uuid.UUID:
         return self.interaction_id
 
     def add_tool_execution(self, record: ToolRecord) -> None:
@@ -74,13 +76,15 @@ class Interaction(_BaseInteraction):
         conversation_id: uuid.UUID | None,
         properties: dict[str, Any] | None,
         queue: _EventQueue,
+        sign_fn: Callable,
     ) -> None:
         super().__init__(provider, model_name, properties)
         self.input = input
         self.conversation_id = conversation_id
 
-        self._queue = queue
+        self._sign_fn = sign_fn
 
+        self._queue = queue
         self._context_token = current_interaction_var.set(self)
 
     @property
@@ -93,7 +97,7 @@ class Interaction(_BaseInteraction):
         tokens_input: int | None = None,
         tokens_output: int | None = None,
         finish_reason: str | None = None,
-    ) -> uuid.UUID:
+    ) -> tuple[uuid.UUID, str, str | None]:
         """Complete the root interaction and enqueue the full payload.
 
         Calculates total latency and aggregates all tool/agent records.
@@ -106,6 +110,8 @@ class Interaction(_BaseInteraction):
 
         Returns:
             uuid.UUID: The interaction ID assigned to this event.
+            str: SHA-256 hash of the prompt for this event's input.
+            str | None: A cryptographic fingerprint for frontend event validation, if the backend handshake succeeded; otherwise None.
         """
         if self._finished:
             logger.warning(
@@ -124,6 +130,7 @@ class Interaction(_BaseInteraction):
             model_name=self.model_name,
             input=self.input,
             output=output,
+            prompt_hash=_generate_hash(self.input),
             tokens_input=tokens_input,
             tokens_output=tokens_output,
             finish_reason=finish_reason,
@@ -133,9 +140,13 @@ class Interaction(_BaseInteraction):
             properties=self.properties,
         )
 
-        self._queue.enqueue(payload.model_dump(mode="json", exclude_none=True))
+        self._queue.enqueue(payload.model_dump(mode="json"))
 
-        return self.interaction_id
+        return (
+            payload.interaction_id,
+            payload.prompt_hash,
+            self._sign_fn(payload.interaction_id) if self._sign_fn else None,
+        )
 
 
 class ChildInteraction(_BaseInteraction):

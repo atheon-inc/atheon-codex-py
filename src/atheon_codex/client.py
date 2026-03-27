@@ -1,14 +1,19 @@
+import json
+import logging
 import uuid
 from decimal import Decimal
 from typing import Any
 
 import httpx
+from cryptography.fernet import Fernet
 
 from ._internals import _handle_response
 from ._queue import _EventQueue
-from ._utils import Err
+from ._utils import Err, _generate_hash
 from .interactions import Interaction
 from .models import AtheonTrackPayload
+
+logger = logging.getLogger(__name__)
 
 
 class AtheonCodexClient:
@@ -46,6 +51,24 @@ class AtheonCodexClient:
             max_queue_size=max_queue_size,
         )
 
+        self.__fernet: Fernet | None = None
+        self.__env_context: str | None = None
+
+        self._initialize_fernet()
+
+    def _initialize_fernet(self) -> None:
+        try:
+            response = self._http_client.get("/track-ai-events/signing-secret")
+            response.raise_for_status()
+
+            data = response.json()
+
+            self.__fernet = Fernet(data["signing_secret"].encode("utf-8"))
+            self.__env_context = data["env_context"]
+
+        except Exception as err:
+            logger.error(f"Failed to complete security handshake: {err}")
+
     def __enter__(self) -> "AtheonCodexClient":
         return self
 
@@ -58,6 +81,19 @@ class AtheonCodexClient:
     def shutdown(self) -> None:
         self._queue.shutdown()
         self._http_client.close()
+
+    def _sign_interaction_id(self, interaction_id: uuid.UUID) -> str | None:
+        if not self.__fernet:
+            return None
+
+        return self.__fernet.encrypt(
+            json.dumps(
+                {
+                    "interaction_id": str(interaction_id),
+                    "env_context": self.__env_context,
+                }
+            ).encode("utf-8")
+        ).decode("utf-8")
 
     def track(
         self,
@@ -72,12 +108,13 @@ class AtheonCodexClient:
         tools_used: list[dict[str, Any]] | None = None,
         conversation_id: uuid.UUID | None = None,
         properties: dict[str, Any] | None = None,
-    ) -> uuid.UUID:
+    ) -> tuple[uuid.UUID, str, str | None]:
         payload = AtheonTrackPayload(
             provider=provider,
             model_name=model_name,
             input=input,
             output=output,
+            prompt_hash=_generate_hash(input),
             tokens_input=tokens_input,
             tokens_output=tokens_output,
             finish_reason=finish_reason,
@@ -89,9 +126,13 @@ class AtheonCodexClient:
             properties=properties or {},
         )
 
-        self._queue.enqueue(payload.model_dump(mode="json", exclude_none=True))
+        self._queue.enqueue(payload.model_dump(mode="json"))
 
-        return payload.interaction_id
+        return (
+            payload.interaction_id,
+            payload.prompt_hash,
+            self._sign_interaction_id(payload.interaction_id),
+        )
 
     def begin(
         self,
@@ -108,6 +149,7 @@ class AtheonCodexClient:
             conversation_id=conversation_id,
             properties=properties,
             queue=self._queue,
+            sign_fn=self._sign_interaction_id,
         )
 
     def _send_batch(self, batch: list[dict]) -> None:

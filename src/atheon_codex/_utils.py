@@ -1,7 +1,16 @@
+import hashlib
 from enum import StrEnum
 from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict
+
+
+def _generate_hash(text: str | None) -> str:
+    normalized = (text or "").strip().lower()
+    encoded = normalized.encode("utf-8")
+    hash_bytes = hashlib.sha256(encoded).digest()
+    return hash_bytes.hex()
+
 
 # TODO: Remove this when minimum supported version becomes >=3.12
 T = TypeVar("T", bound=Any)

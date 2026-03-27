@@ -10,7 +10,7 @@ from .models import AgentRecord, AtheonTrackPayload, ToolRecord
 
 logger = logging.getLogger(__name__)
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __all__ = [
     "__version__",
     # Decorators
@@ -111,7 +111,7 @@ def track(
     tools_used: list[dict[str, Any]] | None = None,
     conversation_id: uuid.UUID | None = None,
     properties: dict[str, Any] | None = None,
-) -> uuid.UUID:
+) -> tuple[uuid.UUID, str, str | None]:
     """Track a complete single-turn interaction (fire-and-forget).
 
     Use `begin()` and `finish()` instead when you need streaming, `@atheon.tool`
@@ -132,6 +132,9 @@ def track(
 
     Returns:
         uuid.UUID: The assigned interaction ID.
+        str: SHA-256 hash of the prompt for this event's input.
+        str | None: A cryptographic fingerprint for frontend event validation, if the backend handshake succeeded; otherwise None.
+
     """
     return _get_client().track(
         provider=provider,
@@ -191,8 +194,10 @@ def flush() -> None:
 
 
 def shutdown() -> None:
+    global _client
     if _client is not None:
         _client.shutdown()
+        _client = None
 
 
 def set_result(
@@ -300,7 +305,7 @@ def async_track(
     tools_used: list[dict[str, Any]] | None = None,
     conversation_id: uuid.UUID | None = None,
     properties: dict[str, Any] | None = None,
-) -> uuid.UUID:
+) -> tuple[uuid.UUID, str, str | None]:
     """Track a complete single-turn interaction (fire-and-forget).
 
     Use `async_begin()` and `finish()` instead when you need streaming, `@atheon.tool`
@@ -321,6 +326,8 @@ def async_track(
 
     Returns:
         uuid.UUID: The assigned interaction ID.
+        str: SHA-256 hash of the prompt for this event's input.
+        str | None: A cryptographic fingerprint for frontend event validation, if the backend handshake succeeded; otherwise None.
     """
     return _get_async_client().track(
         provider=provider,
@@ -380,5 +387,7 @@ async def async_flush() -> None:
 
 
 async def async_shutdown() -> None:
+    global _async_client
     if _async_client is not None:
         await _async_client.shutdown()
+        _async_client = None

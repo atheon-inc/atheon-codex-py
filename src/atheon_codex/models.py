@@ -49,6 +49,7 @@ class AtheonTrackPayload(BaseModel):
 
     input: Annotated[str | None, Field(default=None)]
     output: Annotated[str | None, Field(default=None)]
+    prompt_hash: Annotated[str | None, Field(default=None)]
 
     tokens_input: Annotated[int | None, Field(default=None)]
     tokens_output: Annotated[int | None, Field(default=None)]

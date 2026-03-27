@@ -1,6 +1,6 @@
 [project]
 name = "atheon-codex"
-version = "1.0.1"
+version = "1.0.2"
 description = "Python SDK for Atheon"
 authors = [{ name = "Saurabh Ghanekar", email = "saurabh@atheon.ad" }]
 license = "Apache-2.0"
@@ -8,7 +8,7 @@ license-files = ["LICENSE.md"]
 readme = "README.md"
 urls = { homepage = "https://atheon.ad/", repository = "https://github.com/atheon-inc/atheon-codex", documentation = "https://github.com/atheon-inc/atheon-codex" }
 requires-python = ">=3.11"
-dependencies = ["httpx>=0.28", "pydantic>=2.12"]
+dependencies = ["cryptography>=46.0", "httpx>=0.28", "pydantic>=2.12"]
 
 [dependency-groups]
 dev = ["click>=8.3", "pre-commit>=4.5", "rich>=14.3"]

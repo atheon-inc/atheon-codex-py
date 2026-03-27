@@ -177,15 +177,14 @@ def _run_agent_sync(
 
     error_msg: str | None = None
 
-    with child_interaction:
-        try:
-            result = func(*args, **kwargs)
-            return result
-        except Exception as exc:
-            error_msg = str(exc)
-            raise
-        finally:
-            child_interaction._finish(error=error_msg)
+    try:
+        result = func(*args, **kwargs)
+        return result
+    except Exception as exc:
+        error_msg = str(exc)
+        raise
+    finally:
+        child_interaction._finish(error=error_msg)
 
 
 async def _run_agent_async(
@@ -215,12 +214,11 @@ async def _run_agent_async(
 
     error_msg: str | None = None
 
-    with child_interaction:
-        try:
-            result = await func(*args, **kwargs)
-            return result
-        except Exception as exc:
-            error_msg = str(exc)
-            raise
-        finally:
-            child_interaction._finish(error=error_msg)
+    try:
+        result = await func(*args, **kwargs)
+        return result
+    except Exception as exc:
+        error_msg = str(exc)
+        raise
+    finally:
+        child_interaction._finish(error=error_msg)
