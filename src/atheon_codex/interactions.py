@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Callable
 from contextvars import ContextVar, Token
 from decimal import Decimal
-from typing import Any, Self
+from typing import Any
 
 from ._queue import _EventQueue
 from ._utils import _generate_hash
@@ -52,12 +52,6 @@ class _BaseInteraction:
         if self._context_token is not None:
             current_interaction_var.reset(self._context_token)
             self._context_token = None
-
-    def __enter__(self) -> Self:
-        return self
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        self._cleanup_context()
 
 
 class Interaction(_BaseInteraction):
@@ -115,7 +109,7 @@ class Interaction(_BaseInteraction):
         """
         if self._finished:
             logger.warning(
-                "finish() called more than once on interaction %s.", self.interaction_id
+                f"finish() called more than once on interaction {self.interaction_id}."
             )
             return self.interaction_id
 
@@ -179,7 +173,7 @@ class ChildInteraction(_BaseInteraction):
     def is_child_interaction(self) -> bool:
         return True
 
-    def _finish(self, error: str | None = None) -> None:
+    def finish(self, error: str | None = None) -> None:
         if self._finished:
             return
 

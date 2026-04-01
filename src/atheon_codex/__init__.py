@@ -5,12 +5,12 @@ from typing import Any
 from .async_client import AsyncAtheonCodexClient
 from .client import AtheonCodexClient
 from .decorators import agent, tool
-from .interactions import Interaction
+from .interactions import ChildInteraction, Interaction
 from .models import AgentRecord, AtheonTrackPayload, ToolRecord
 
 logger = logging.getLogger(__name__)
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 __all__ = [
     "__version__",
     # Decorators
@@ -37,6 +37,7 @@ __all__ = [
     "ToolRecord",
     "AgentRecord",
     "Interaction",
+    "ChildInteraction",
 ]
 
 _client: AtheonCodexClient | None = None

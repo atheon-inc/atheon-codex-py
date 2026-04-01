@@ -161,9 +161,8 @@ def _run_agent_sync(
     parent = current_interaction_var.get()
     if parent is None:
         logger.warning(
-            "@atheon.agent('%s') called with no active root interaction. "
-            "Call atheon.begin() first. Child-agent will not be tracked.",
-            name,
+            f"@atheon.agent('{name}') called with no active root interaction. "
+            "Call atheon.begin() first. Child-agent will not be tracked."
         )
         return func(*args, **kwargs)
 
@@ -184,7 +183,7 @@ def _run_agent_sync(
         error_msg = str(exc)
         raise
     finally:
-        child_interaction._finish(error=error_msg)
+        child_interaction.finish(error=error_msg)
 
 
 async def _run_agent_async(
@@ -198,9 +197,8 @@ async def _run_agent_async(
     parent = current_interaction_var.get()
     if parent is None:
         logger.warning(
-            "@atheon.agent('%s') called with no active root interaction. "
-            "Call atheon.begin() first. Child-agent will not be tracked.",
-            name,
+            f"@atheon.agent('{name}') called with no active root interaction. "
+            "Call atheon.begin() first. Child-agent will not be tracked."
         )
         return await func(*args, **kwargs)
 
@@ -221,4 +219,4 @@ async def _run_agent_async(
         error_msg = str(exc)
         raise
     finally:
-        child_interaction._finish(error=error_msg)
+        child_interaction.finish(error=error_msg)

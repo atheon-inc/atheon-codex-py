@@ -59,7 +59,7 @@ class AtheonTrackPayload(BaseModel):
 
     tools_used: Annotated[list[ToolRecord | AgentRecord], Field(default_factory=list)]
 
-    conversation_id: Annotated[uuid.UUID | None, Field(default=None)]
+    conversation_id: Annotated[str | None, Field(default=None)]
     properties: Annotated[dict[str, Any], Field(default_factory=dict)]
 
     @model_validator(mode="after")
