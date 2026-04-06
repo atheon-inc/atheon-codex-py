@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 import uuid
 from decimal import Decimal
 from typing import Any
@@ -11,6 +12,7 @@ from cryptography.fernet import Fernet
 from ._internals import _handle_response
 from ._queue import _EventQueue
 from ._utils import Err, _generate_hash
+from .exceptions import InternalServerErrorException, RateLimitException
 from .interactions import Interaction
 from .models import AtheonTrackPayload
 
@@ -63,17 +65,43 @@ class AsyncAtheonCodexClient:
         self._initialize_fernet()
 
     def _initialize_fernet(self) -> None:
-        try:
-            response = self._sync_http_client.get("/track-ai-events/signing-secret")
-            response.raise_for_status()
+        for attempt in range(3):
+            try:
+                response = self._sync_http_client.get("/track-ai-events/signing-secret")
+                result = _handle_response(response)
 
-            data = response.json()
+                if isinstance(result, Err):
+                    is_retryable = isinstance(
+                        result.error, (RateLimitException, InternalServerErrorException)
+                    )
 
-            self.__fernet = Fernet(data["signing_secret"].encode("utf-8"))
-            self.__env_context = data["env_context"]
+                    if is_retryable and attempt < 2:
+                        time.sleep(0.2 * (2**attempt))
+                        continue
 
-        except Exception as err:
-            logger.error(f"Failed to complete security handshake: {err}")
+                    logger.error(
+                        f"Failed to complete security handshake: {result.error.detail}"
+                    )
+                    raise RuntimeError("Failed to complete cryptographic handshake.")
+
+                data = result.value
+                self.__fernet = Fernet(data["signing_secret"].encode("utf-8"))
+                self.__env_context = data["env_context"]
+                return
+
+            except Exception as err:
+                if isinstance(err, httpx.RequestError) and attempt < 2:
+                    time.sleep(0.2 * (2**attempt))
+                    continue
+
+                logger.error(
+                    f"Failed to complete security handshake after retry: {err}"
+                )
+                raise RuntimeError(
+                    "Failed to complete cryptographic handshake."
+                ) from err
+
+        raise RuntimeError("Failed to complete cryptographic handshake.")
 
     async def __aenter__(self) -> "AsyncAtheonCodexClient":
         return self

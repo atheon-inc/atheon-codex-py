@@ -1,10 +1,13 @@
 import logging
 import queue
 import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
+
+from .exceptions import InternalServerErrorException, RateLimitException
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +110,18 @@ class _EventQueue:
         if not batch:
             return
 
-        try:
-            self._send_fn(batch)
-        except Exception:
-            logger.exception("Failed to send event batch.")
+        for attempt in range(3):
+            try:
+                self._send_fn(batch)
+                return
+            except Exception as err:
+                is_retryable = isinstance(
+                    err, (RateLimitException, InternalServerErrorException)
+                )
+
+                if is_retryable and attempt < 2:
+                    time.sleep(0.2 * (2**attempt))
+                    continue
+
+                logger.exception("Failed to send event batch after retry.")
+                return

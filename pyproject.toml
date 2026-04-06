@@ -1,6 +1,6 @@
 [project]
 name = "atheon-codex"
-version = "1.0.3"
+version = "1.0.4"
 description = "Python SDK for Atheon"
 authors = [{ name = "Saurabh Ghanekar", email = "saurabh@atheon.ad" }]
 license = "Apache-2.0"
