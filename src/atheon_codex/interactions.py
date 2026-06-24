@@ -5,6 +5,7 @@ import time
 import uuid
 from collections.abc import Callable
 from contextvars import ContextVar, Token
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -87,6 +88,7 @@ class Interaction(_BaseInteraction):
 
     def finish(
         self,
+        created_at: datetime | None = None,
         output: str | None = None,
         tokens_input: int | None = None,
         tokens_output: int | None = None,
@@ -97,6 +99,7 @@ class Interaction(_BaseInteraction):
         Calculates total latency and aggregates all tool/agent records.
 
         Args:
+            created_at (datetime | None, optional): Timestamp for this interaction.
             output (str | None, optional): Final LLM response text.
             tokens_input (int | None, optional): Prompt token count.
             tokens_output (int | None, optional): Completion token count.
@@ -120,6 +123,7 @@ class Interaction(_BaseInteraction):
 
         payload = AtheonTrackPayload(
             interaction_id=self.interaction_id,
+            created_at=created_at,
             provider=self.provider,
             model_name=self.model_name,
             input=self.input,

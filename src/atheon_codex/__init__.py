@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime
 from typing import Any
 
 from .async_client import AsyncAtheonCodexClient
@@ -10,7 +11,7 @@ from .models import AgentRecord, AtheonTrackPayload, ToolRecord
 
 logger = logging.getLogger(__name__)
 
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 __all__ = [
     "__version__",
     # Decorators
@@ -103,6 +104,7 @@ def _get_client() -> AtheonCodexClient:
 def track(
     provider: str,
     model_name: str,
+    created_at: datetime | None = None,
     input: str | None = None,
     output: str | None = None,
     tokens_input: int | None = None,
@@ -121,6 +123,7 @@ def track(
     Args:
         provider (str): LLM provider (e.g., "openai", "anthropic").
         model_name (str): Specific model (e.g., "gpt-4o").
+        created_at (datetime | None, optional): Timestamp for this interaction.
         input (str | None, optional): User query. Either input or output must be provided.
         output (str | None, optional): LLM response. Either input or output must be provided.
         tokens_input (int | None, optional): Prompt token count.
@@ -138,6 +141,7 @@ def track(
 
     """
     return _get_client().track(
+        created_at=created_at,
         provider=provider,
         model_name=model_name,
         input=input,

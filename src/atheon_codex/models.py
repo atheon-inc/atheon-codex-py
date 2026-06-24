@@ -5,7 +5,14 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 
 class ToolRecord(BaseModel):
@@ -44,7 +51,7 @@ class AtheonTrackPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     interaction_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4)]
-    created_at: Annotated[datetime, Field(default_factory=lambda: datetime.now(UTC))]
+    created_at: datetime
 
     provider: str
     model_name: str
@@ -63,6 +70,16 @@ class AtheonTrackPayload(BaseModel):
 
     conversation_id: Annotated[str | None, Field(default=None)]
     properties: Annotated[dict[str, Any], Field(default_factory=dict)]
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def validate_created_at(cls, value: Any, _info: Any) -> Any:
+        if value is None:
+            return datetime.now(UTC)
+        if isinstance(value, datetime):
+            return value.astimezone(UTC)
+
+        return value
 
     @field_serializer("created_at")
     def serialize_created_at(self, created_at: datetime, _info: Any) -> str:

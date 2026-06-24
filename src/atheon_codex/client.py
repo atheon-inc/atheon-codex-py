@@ -2,6 +2,7 @@ import json
 import logging
 import time
 import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -127,6 +128,7 @@ class AtheonCodexClient:
         self,
         provider: str,
         model_name: str,
+        created_at: datetime | None = None,
         input: str | None = None,
         output: str | None = None,
         tokens_input: int | None = None,
@@ -138,6 +140,7 @@ class AtheonCodexClient:
         properties: dict[str, Any] | None = None,
     ) -> tuple[uuid.UUID, str, str | None]:
         payload = AtheonTrackPayload(
+            created_at=created_at,
             provider=provider,
             model_name=model_name,
             input=input,
